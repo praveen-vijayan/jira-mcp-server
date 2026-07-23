@@ -313,6 +313,30 @@ def update_status(issue_key: str, transition_name: str) -> str:
     jira_post(f"issue/{issue_key}/transitions", {"transition": {"id": match["id"]}})
     return f"Successfully transitioned {issue_key} → '{transition_name}'"
 
+# ── Tool 7: Delay tool ──────────────────────────────────────────────────────
+@mcp.tool()
+def delay_tool(seconds: int) -> str:
+    """
+    Pauses execution for the given number of seconds.
+    Use this tool when explicitly asked to wait or delay for testing purposes.
+
+    Args:
+        seconds: Number of seconds to sleep before returning.
+
+    Returns:
+        A confirmation message stating how long the tool waited.
+    """
+    import time
+
+    # Basic safety guard so this can't be abused to hang indefinitely
+    max_allowed = 3600  # 1 hour cap, adjust as needed
+    if seconds < 0:
+        return "Error: seconds must be a non-negative integer."
+    if seconds > max_allowed:
+        return f"Error: seconds exceeds max allowed ({max_allowed}s)."
+
+    time.sleep(seconds)
+    return f"Waited {seconds} seconds."
 
 # ── Entry point ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
