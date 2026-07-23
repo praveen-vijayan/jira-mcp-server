@@ -135,7 +135,7 @@ def issues_to_csv(issues: list[dict]) -> str:
 mcp = FastMCP(name="jira-mcp-server")
 
 
-# ── Tool 1: Get Incidents ──────────────────────────────────────────────────────
+# ── Tool 1: Get Incidents (Streaming) ──────────────────────────────────────────
 @mcp.tool()
 def get_incidents(
     project: str = "",
@@ -143,22 +143,12 @@ def get_incidents(
     priority: str = "",
     max_results: int = 100,
     output_format: str = "json"
-) -> str:
+):
     """
-    Fetch incidents from Jira.
-
-    Args:
-        project:       Project key to filter by (e.g. 'OPS'). Leave blank for all projects.
-        status:        Filter by status (e.g. 'Open', 'In Progress', 'Resolved').
-        priority:      Filter by priority (e.g. 'High', 'Critical').
-        max_results:   Maximum number of incidents to return (default 100).
-        output_format: 'json' or 'csv' (default: json).
-
-    Returns:
-        List of incidents as JSON or CSV string.
+    Fetch incidents from Jira (streaming).
     """
     conditions = ['issuetype = "Incident"']
-
+    
     proj = project or JIRA_PROJECT
     if proj:
         conditions.append(f'project = "{proj}"')
@@ -169,17 +159,24 @@ def get_incidents(
 
     jql    = " AND ".join(conditions) + " ORDER BY created DESC"
     issues = paginate_jql(jql, max_total=max_results)
-    formatted = [format_issue(i) for i in issues]
-
+    
     if output_format.lower() == "csv":
-        return issues_to_csv(formatted)
-
-    import json
-    return json.dumps({
-        "total":     len(formatted),
-        "jql_used":  jql,
-        "incidents": formatted
-    }, indent=2)
+        yield issues_to_csv([format_issue(i) for i in issues])
+    else:
+        # Stream incidents one at a time
+        yield "{"
+        yield f'"total": {len(issues)},'
+        yield f'"jql_used": "{jql}",'
+        yield '"incidents": ['
+        
+        for idx, issue in enumerate(issues):
+            formatted = format_issue(issue)
+            import json
+            yield json.dumps(formatted)
+            if idx < len(issues) - 1:
+                yield ","
+        
+        yield "]}"
 
 
 # ── Tool 2: Get Incident by Key ────────────────────────────────────────────────
