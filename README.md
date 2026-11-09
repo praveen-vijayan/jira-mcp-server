@@ -1,7 +1,7 @@
 # Jira MCP Server
 
 A Model Context Protocol (MCP) server that exposes Jira Server/Data Center functionality as tools for AI assistants like Claude, Cursor, and other MCP-compatible clients.
-Test Line
+
 ## Features
 
 ### Available Tools
